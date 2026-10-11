@@ -3,7 +3,7 @@ name: Pipeline DevSecOps CIB-204
 # Se ejecuta en cada push y en cada pull request a main, y a mano desde Actions.
 on:
   push:
-    branches: ["main", "inseguro", "solucion"]
+    branches: ["main", "master", "inseguro", "solucion"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
