@@ -1,18 +1,12 @@
-# Imagen base con version definida y menor superficie de ataque
-FROM node:20-slim
-
+FROM node:24-bookworm-slim AS builder
 WORKDIR /app
-
-# Instalar dependencias de manera reproducible
-COPY --chown=node:node package.json package-lock.json ./
+COPY package*.json ./
 RUN npm ci --omit=dev
 
-# Copiar el codigo de la aplicacion
-COPY --chown=node:node . .
-
-# Ejecutar con un usuario sin privilegios
-USER node
-
+FROM gcr.io/distroless/nodejs24-debian13:nonroot
+WORKDIR /app
+COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
+COPY --chown=nonroot:nonroot . .
+ENV NODE_ENV=production
 EXPOSE 3000
-
-CMD ["node", "servidor.js"]
+CMD ["servidor.js"]

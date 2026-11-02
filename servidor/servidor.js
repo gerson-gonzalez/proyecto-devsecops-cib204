@@ -21,7 +21,9 @@ const db = require('./db');
 const config = require('./config');
 const { requiereAuth } = require('./auth');
 
-const app = express();
+// API autenticada mediante Bearer JWT, sin cookies de sesion.
+// CSRF no aplica a este mecanismo; excepcion especifica documentada.
+const app = express(); // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage
 app.use(express.json());
 
 // [VULN-5] CORS totalmente abierto: cualquier origen puede consumir la API.
