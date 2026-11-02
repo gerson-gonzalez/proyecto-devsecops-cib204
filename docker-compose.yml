@@ -11,9 +11,10 @@ services:
     environment:
       # El control de acceso arranca APAGADO (rama insegura). Se activa en la
       # Seccion de IAM poniendo AUTH_ENABLED=true.
-      - AUTH_ENABLED=${AUTH_ENABLED:-false}
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
       - KEYCLOAK_URL=http://keycloak:8080
       - KEYCLOAK_REALM=appmovil
+      - KEYCLOAK_ISSUER=https://${CODESPACE_NAME}-8080.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/realms/appmovil
     restart: unless-stopped
 
   keycloak:

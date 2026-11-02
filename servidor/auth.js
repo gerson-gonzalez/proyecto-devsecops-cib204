@@ -1,43 +1,38 @@
-// ============================================================================
-//  auth.js  -  Gestion de identidad y acceso (IAM)
-//  >>> VERSION INSEGURA <<<
-// ============================================================================
-//
-//  Middleware que deberia exigir un token JWT valido emitido por Keycloak.
-//  En esta version esta debilitado a proposito.
-
-const jwt = require('jsonwebtoken');
+// Autenticacion JWT mediante Keycloak y JWKS
+const { jwtVerify, createRemoteJWKSet } = require('jose');
 const config = require('./config');
 
-// [VULN-4] Verificacion de JWT insegura.
-//   - No se valida la firma con la llave publica de Keycloak.
-//   - Se acepta el algoritmo 'none' y se decodifica sin verificar.
-//   - El secreto de respaldo esta quemado (config.JWT_SECRET).
-//   Un atacante puede fabricar un token con alg=none y entrar.
-//   La solucion es validar la firma contra el JWKS del emisor y restringir
-//   los algoritmos permitidos (RS256).
-//   CWE-347 (Improper Verification of Cryptographic Signature) / CWE-287
+// Direccion interna para consultar las claves publicas de Keycloak
+const jwksUrl = new URL(
+  `${config.KEYCLOAK_URL}/realms/${config.KEYCLOAK_REALM}/protocol/openid-connect/certs`
+);
 
-function requiereAuth(req, res, next) {
-  // Si el control de acceso esta apagado, deja pasar a cualquiera.
+const JWKS = createRemoteJWKSet(jwksUrl);
+
+// Emisor real configurado en Keycloak
+const issuer = process.env.KEYCLOAK_ISSUER;
+
+async function requiereAuth(req, res, next) {
   if (!config.AUTH_ENABLED) {
     return next();
   }
 
-  const cabecera = req.headers['authorization'] || '';
-  const token = cabecera.replace('Bearer ', '');
+  const authorization = req.headers.authorization || '';
+  const match = /^Bearer\s+(.+)$/i.exec(authorization);
 
-  if (!token) {
+  if (!match || !issuer) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
   try {
-    // INSEGURO: decodifica sin verificar la firma y admite 'none'.
-    const payload = jwt.decode(token) ||
-      jwt.verify(token, config.JWT_SECRET, { algorithms: ['none', 'HS256'] });
+    const { payload } = await jwtVerify(match[1], JWKS, {
+      algorithms: ['RS256'],
+      issuer,
+    });
+
     req.usuario = payload;
     return next();
-  } catch (e) {
+  } catch (error) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 }
