@@ -8,5 +8,6 @@ WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /app/node_modules ./node_modules
 COPY --chown=nonroot:nonroot . .
 ENV NODE_ENV=production
+USER 65532:65532
 EXPOSE 3000
 CMD ["servidor.js"]
