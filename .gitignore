@@ -7,3 +7,9 @@ node_modules/
 #   .env
 #   *.pem
 #   clave_privada*.pem
+
+# Seguridad - Fase 2
+.env
+*.pem
+clave_privada*.pem
+.expo/
