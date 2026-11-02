@@ -15,7 +15,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const cifrado = require('./cifrado');
 const db = require('./db');
 const config = require('./config');
@@ -82,9 +82,13 @@ app.get('/buscar', (req, res) => {
 //   Lo detectan Semgrep y CodeQL (js/code-injection).
 //   CWE-95 (Eval Injection)
 app.post('/calcular', (req, res) => {
-  const expresion = req.body.expresion || '0';
+  const numeros = Array.isArray(req.body.numeros) ? req.body.numeros : [];
   try {
-    const resultado = eval(expresion);
+    if (!numeros.every(n => typeof n === 'number' && Number.isFinite(n))) {
+  return res.status(400).json({ error: 'Entrada invalida' });
+}
+
+const resultado = numeros.reduce((a, b) => a + b, 0);
     res.json({ resultado });
   } catch (e) {
     res.status(400).json({ error: 'Expresion invalida' });
@@ -97,9 +101,16 @@ app.post('/calcular', (req, res) => {
 //   CWE-78 (OS Command Injection)
 app.get('/diagnostico', (req, res) => {
   const host = req.query.host || '127.0.0.1';
-  exec('ping -c 1 ' + host, (err, stdout, stderr) => {
-    res.json({ salida: stdout, error: stderr });
-  });
+
+  if (typeof host !== 'string' || !/^[a-zA-Z0-9.-]{1,64}$/.test(host)) {
+    return res.status(400).json({ error: 'Host invalido' });
+  }
+
+  execFile('ping', ['-c', '1', host], { timeout: 5000 },
+    (err, stdout, stderr) => {
+      res.json({ salida: stdout, error: stderr });
+    }
+  );
 });
 
 if (require.main === module) {
